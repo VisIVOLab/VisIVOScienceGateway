@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  airavata:
+    image: apache/airavata:latest
+    container_name: airavata
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=airavata
+      - DB_PASSWORD=airavata
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    container_name: react-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - airavata
+
+  db:
+    image: postgres:14
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_DB: airavata
+      POSTGRES_USER: airavata
+      POSTGRES_PASSWORD: airavata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      DB_VENDOR: POSTGRES
+      DB_ADDR: db
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: keycloak
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+    command: start-dev
+
+volumes:
+  postgres_data:
