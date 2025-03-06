@@ -1,12 +1,13 @@
 # Visivo Science Gateway
 
-Visivo Science Gateway is a web-based platform designed for executing and managing scientific workflows using Apache Airflow and Slurm. The system includes a backend API, a frontend interface, and an orchestration layer for job scheduling and execution.
+Visivo Science Gateway is a web-based platform designed for executing and managing scientific workflows using Apache Airflow and Slurm. The system includes a backend API, a frontend interface, an authentication service with Keycloak, and an orchestration layer for job scheduling and execution.
 
 ## Features
 - **Web-based UI**: A React-based frontend for users to define and monitor workflows.
 - **Workflow Execution**: Apache Airflow for scheduling and executing jobs.
 - **Slurm Integration**: Submit and manage jobs on a Slurm cluster.
-- **REST API**: A FastAPI backend for communication between the frontend and Airflow.
+- **Authentication & Authorization**: Keycloak for user management and authentication.
+- **REST API**: A FastAPI backend for communication between the frontend, Keycloak, and Airflow.
 - **Dockerized Deployment**: All components run in containers for easy setup and management.
 
 ## Prerequisites
@@ -34,11 +35,20 @@ This will start the following services:
 - Redis (Message Broker)
 - FastAPI Backend (API Service)
 - React Frontend (User Interface)
+- Keycloak (Authentication Service)
 
 ### Accessing the Services
 - **Airflow Web UI**: [http://localhost:8080](http://localhost:8080)
 - **Backend API**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Frontend UI**: [http://localhost:3000](http://localhost:3000)
+- **Frontend UI**: [http://localhost:5173](http://localhost:5173)
+- **Keycloak Admin UI**: [http://localhost:8081](http://localhost:8081) (default admin: `admin/admin`)
+
+## Authentication with Keycloak
+1. Open the Keycloak Admin UI and log in with `admin/admin`.
+2. Create a new realm for the application.
+3. Configure client credentials for the frontend and backend.
+4. Users will authenticate via Keycloak when logging into the frontend.
+5. The backend will validate authentication tokens via Keycloak.
 
 ## Development
 ### Frontend
@@ -58,7 +68,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ## Configuration
-Modify environment variables in the `.env` files for each service to customize settings.
+Modify environment variables in the `.env` files for each service to customize settings, including Keycloak credentials.
 
 ## Contributing
 We welcome contributions! Please follow these steps:
