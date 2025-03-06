@@ -1,93 +1,75 @@
-# VisIVO Science Gateway with Apache Airavata, React, Keycloak, and PostgreSQL
+# Visivo Science Gateway
 
-## Overview
-This project is a Science Gateway called **VisIVO Science Gateway** that integrates **Apache Airavata**, **React.js**, **Keycloak**, and **PostgreSQL**, all orchestrated with **Docker Compose**. It provides a user-friendly frontend for job submission and monitoring while leveraging Airavata for HPC workload management.
+Visivo Science Gateway is a web-based platform designed for executing and managing scientific workflows using Apache Airflow and Slurm. The system includes a backend API, a frontend interface, and an orchestration layer for job scheduling and execution.
 
 ## Features
-- **React.js** as the frontend
-- **Apache Airavata** for scientific workflow management
-- **Keycloak** for authentication (OAuth 2.0 / OpenID Connect)
-- **PostgreSQL** as the database backend
-- **Docker Compose** for containerized deployment
-
-## Architecture
-```
-+----------------+       +-----------------+       +-----------------+
-| React Frontend | <---> | Apache Airavata | <---> | PostgreSQL (DB) |
-+----------------+       +-----------------+       +-----------------+
-        |                      |                        |
-        v                      v                        v
-+----------------+      +-----------------+       +----------------+
-|    Nginx      |      |    Keycloak      |       |    Docker      |
-+----------------+      +-----------------+       +----------------+
-```
+- **Web-based UI**: A React-based frontend for users to define and monitor workflows.
+- **Workflow Execution**: Apache Airflow for scheduling and executing jobs.
+- **Slurm Integration**: Submit and manage jobs on a Slurm cluster.
+- **REST API**: A FastAPI backend for communication between the frontend and Airflow.
+- **Dockerized Deployment**: All components run in containers for easy setup and management.
 
 ## Prerequisites
-Make sure you have the following installed:
+Ensure you have the following installed before running the project:
 - [Docker](https://www.docker.com/get-started)
 - [Docker Compose](https://docs.docker.com/compose/install/)
+- [Node.js](https://nodejs.org/) (for frontend development)
+- [Python 3.9+](https://www.python.org/downloads/) (for backend development)
 
 ## Installation
-### 1️⃣ Clone the Repository
-```bash
-git clone https://github.com/yourusername/visivo-science-gateway.git
-cd visivo-science-gateway
+Clone the repository:
+```sh
+git clone https://github.com/visivolab/VisIVOScienceGateway.git
+cd VisIVOScienceGateway
 ```
 
-### 2️⃣ Build and Run the Containers
-```bash
-docker-compose up --build
+## Running the Project
+Start all services using Docker Compose:
+```sh
+docker-compose up -d --build
+```
+This will start the following services:
+- PostgreSQL (Database)
+- Apache Airflow (Workflow Management)
+- Redis (Message Broker)
+- FastAPI Backend (API Service)
+- React Frontend (User Interface)
+
+### Accessing the Services
+- **Airflow Web UI**: [http://localhost:8080](http://localhost:8080)
+- **Backend API**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Frontend UI**: [http://localhost:3000](http://localhost:3000)
+
+## Development
+### Frontend
+Navigate to the frontend directory and start the development server:
+```sh
+cd frontend
+npm install
+npm run dev
 ```
 
-### 3️⃣ Access the Services
-- **Frontend (React.js):** [http://localhost](http://localhost)
-- **Apache Airavata API:** [http://localhost:8080](http://localhost:8080)
-- **Keycloak Admin Panel:** [http://localhost:8081](http://localhost:8081)
-  - Username: `admin`
-  - Password: `admin`
-- **PostgreSQL:** Runs in the background on port `5432`
+### Backend
+Navigate to the backend directory and start the FastAPI server:
+```sh
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
 
 ## Configuration
-### Environment Variables
-Modify the `docker-compose.yml` file if you need to adjust credentials or endpoints.
-
-### Setting Up Keycloak
-1. Log in to **Keycloak Admin Panel** (`http://localhost:8081`)
-2. Create a new **Realm** (e.g., `VisIVO`)
-3. Add a **Client** (`react-frontend`)
-   - **Access Type:** Public
-   - **Root URL:** `http://localhost`
-4. Obtain the **Client ID** and update React’s authentication settings
-
-### Configuring React for Authentication
-Edit `frontend/src/Auth.js` and replace `TUO_CLIENT_ID` with the Keycloak client ID:
-```javascript
-<GoogleOAuthProvider clientId="YOUR_CLIENT_ID">
-  <Auth />
-</GoogleOAuthProvider>
-```
-
-## API Usage
-Test the Apache Airavata API with:
-```bash
-curl http://localhost:8080/api/experiments
-```
-
-## Stopping the Services
-To stop and remove containers, run:
-```bash
-docker-compose down
-```
+Modify environment variables in the `.env` files for each service to customize settings.
 
 ## Contributing
-1. Fork the repository
-2. Create a feature branch (`git checkout -b new-feature`)
-3. Commit your changes (`git commit -m 'Add new feature'`)
-4. Push the branch (`git push origin new-feature`)
-5. Submit a pull request
+We welcome contributions! Please follow these steps:
+1. Fork the repository.
+2. Create a new branch: `git checkout -b feature-name`
+3. Commit changes: `git commit -m "Added new feature"`
+4. Push to branch: `git push origin feature-name`
+5. Create a Pull Request.
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
-For issues or suggestions, open a GitHub issue or contact **visivolab.oact@inaf.it**.
+For any inquiries, reach out to visivolab.oact@inaf.it or open an issue in the repository.

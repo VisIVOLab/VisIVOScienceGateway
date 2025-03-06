@@ -1,13 +1,18 @@
-# Build React app
-FROM node:18 AS build
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install
-COPY . .
-RUN npm run build
+# Usa l'immagine di Node.js per React
+FROM node:18
 
-# Serve React app with Nginx
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Imposta la cartella di lavoro
+WORKDIR /app
+
+# Copia il package.json e installa le dipendenze
+COPY package.json ./
+RUN npm install
+
+# Copia tutto il codice del frontend
+COPY . .
+
+# Espone la porta React
+EXPOSE 5173
+
+# Comando per avviare il frontend
+CMD ["npm", "start"]

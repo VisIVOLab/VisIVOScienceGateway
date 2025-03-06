@@ -1,56 +1,117 @@
-version: '3.8'
-
 services:
-  airavata:
-    image: apache/airavata:latest
-    container_name: airavata
-    depends_on:
-      - db
+  postgres:
+    image: postgres:13
+    container_name: airflow-db
+    restart: always
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=airavata
-      - DB_PASSWORD=airavata
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - airflow-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      retries: 5
+      timeout: 3s
+
+  airflow-init:
+    image: apache/airflow:2.7.0
+    container_name: airflow-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        airflow db migrate
+        airflow connections create-default-connections
+    networks:
+      - airflow-net
+
+  redis:
+    image: redis:latest
+    container_name: airflow-redis
+    restart: always
+    networks:
+      - airflow-net
+
+  airflow-webserver:
+    image: apache/airflow:2.7.0
+    container_name: airflow-webserver
+    restart: always
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
     ports:
       - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+    command: webserver
+    networks:
+      - airflow-net
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.0
+    container_name: airflow-scheduler
+    restart: always
+    depends_on:
+      airflow-webserver:
+        condition: service_started
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./dags:/opt/airflow/dags
+    command: scheduler
+    networks:
+      - airflow-net
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    depends_on:
+      airflow-webserver:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENV=production
+    networks:
+      - airflow-net
 
   frontend:
     build: ./frontend
-    container_name: react-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - airavata
-
-  db:
-    image: postgres:14
-    container_name: postgres-db
+    container_name: frontend
     restart: always
-    environment:
-      POSTGRES_DB: airavata
-      POSTGRES_USER: airavata
-      POSTGRES_PASSWORD: airavata
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
-    container_name: keycloak
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      DB_VENDOR: POSTGRES
-      DB_ADDR: db
-      DB_DATABASE: keycloak
-      DB_USER: keycloak
-      DB_PASSWORD: keycloak
-    ports:
-      - "8081:8080"
     depends_on:
-      - db
-    command: start-dev
+      backend:
+        condition: service_started
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - REACT_APP_BACKEND_URL=http://backend:8000
+    networks:
+      - airflow-net
 
 volumes:
   postgres_data:
+
+networks:
+  airflow-net:
