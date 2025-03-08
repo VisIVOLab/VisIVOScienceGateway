@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from keycloak_auth import get_current_user 
 import requests
 import os
 
@@ -39,3 +40,8 @@ async def login(data: LoginRequest):
         raise HTTPException(status_code=response.status_code, detail="Invalid credentials")
 
     return response.json()
+
+@router.get("/secure-data")
+async def secure_data(user: dict = Depends(get_current_user)):
+    """Protected route requiring authentication"""
+    return {"message": "Secure Data Accessed", "user": user}

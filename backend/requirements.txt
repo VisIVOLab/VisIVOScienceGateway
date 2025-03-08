@@ -3,3 +3,5 @@ uvicorn
 requests
 python-keycloak
 fastapi-users
+pytest
+httpx
