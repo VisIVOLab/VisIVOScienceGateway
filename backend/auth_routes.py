@@ -45,3 +45,10 @@ async def login(data: LoginRequest):
 async def secure_data(user: dict = Depends(get_current_user)):
     """Protected route requiring authentication"""
     return {"message": "Secure Data Accessed", "user": user}
+@router.get("/me", tags=["auth"])
+
+async def get_me(user: dict = Depends(get_current_user)):
+    """
+    Returns the authenticated user's information.
+    """
+    return {"username": user.get("preferred_username"), "email": user.get("email")}
