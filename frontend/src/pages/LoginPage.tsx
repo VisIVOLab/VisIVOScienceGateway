@@ -1,69 +1,82 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
-const LoginPage = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+function LoginPage() {
+    const navigate = useNavigate();
+    const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    try {
-      const response = await axios.post("http://localhost:8000/auth/login", {
-        username,
-        password,
-      });
+    useEffect(() => {
+        const token = localStorage.getItem("access_token");
+        if (token) {
+            navigate("/dashboard");
+        }
+    }, [navigate]);
 
-      const { access_token } = response.data;
-      localStorage.setItem("token", access_token);
-      navigate("/dashboard");
-    } catch (err) {
-      setError("Invalid credentials. Please try again.");
-    }
-  };
+    const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setError("");
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <div className="flex justify-center mb-4">
-          <img src="/logo.png" alt="VisIVO Science Gateway" className="h-16" />
+        const formData = new FormData(event.currentTarget);
+        const username = formData.get("username") as string;
+        const password = formData.get("password") as string;
+
+        try {
+            const response = await fetch("http://localhost:8000/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Invalid username or password");
+            }
+
+            const data = await response.json();
+            localStorage.setItem("access_token", data.access_token);
+            navigate("/dashboard");
+        } catch (err) {
+            setError("Invalid credentials. Please try again.");
+        }
+    };
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+                {/* Logo */}
+                <img 
+                    src="/logo.png" 
+                    alt="VisIVO Science Gateway Logo" 
+                    className="w-24 mx-auto mb-4"
+                />
+                
+                <h2 className="text-2xl font-bold mb-4">Login</h2>
+                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+                <form onSubmit={handleLogin} className="flex flex-col">
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Username"
+                        required
+                        className="p-2 mb-2 border rounded"
+                    />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        required
+                        className="p-2 mb-2 border rounded"
+                    />
+                    <button
+                        type="submit"
+                        className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    >
+                        Login
+                    </button>
+                </form>
+            </div>
         </div>
-        <h2 className="text-2xl font-bold text-center text-gray-700 mb-4">Login</h2>
-        {error && <p className="text-red-500 text-center">{error}</p>}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-gray-600">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-gray-600">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
-          >
-            Sign In
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
+    );
+}
 
 export default LoginPage;
