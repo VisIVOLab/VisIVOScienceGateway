@@ -44,6 +44,12 @@ OAUTH_PROVIDERS = [
 ]
 
 class KeycloakSecurityManager(AirflowSecurityManager):
+    """
+    Custom security manager for integrating Airflow with Keycloak authentication.
+    This class overrides `get_oauth_user_info` to correctly extract user roles 
+    from Keycloak's JWT token.
+    """
+     
     def get_oauth_user_info(self, provider, response):
         if provider == "keycloak":
             token = response.get("access_token")
@@ -60,13 +66,29 @@ class KeycloakSecurityManager(AirflowSecurityManager):
                 claims.validate()
             except JoseError:
                 return None
-            
+
+            # Extract roles from realm_access (global roles)
+            realm_roles = claims.get("realm_access", {}).get("roles", [])
+            print(f"\n\nExtracted roles from realm_roles: {realm_roles}\n\n")
+
+            # Extract roles from resource_access (client-specific roles)
+            client_roles = claims.get("resource_access", {}).get(KEYCLOAK_CLIENT_ID, {}).get("roles", [])
+            print(f"\n\nExtracted roles from client_roles: {client_roles}\n\n")
+
+            # Combine both role lists, removing duplicates
+            roles = list(set(realm_roles + client_roles))
+
+
+            print(f"claims:\n\n{claims}\n\n")
+
+            print(f"\n\nExtracted roles from Keycloak: {roles}\n\n")
+
             return {
                 "username": claims.get("preferred_username"),
                 "email": claims.get("email"),
                 "first_name": claims.get("given_name"),
                 "last_name": claims.get("family_name"),
-                "role_keys": claims.get("realm_access", {}).get("roles", [])
+                "role_keys": roles,  # This will map roles into Airflow
             }
         return None
     
