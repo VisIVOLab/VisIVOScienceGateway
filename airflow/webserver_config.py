@@ -1,6 +1,7 @@
 import os
 from flask_appbuilder.security.manager import AUTH_OAUTH
 from airflow.www.security import AirflowSecurityManager
+from flask import redirect
 
 # Read Keycloak configuration from environment variables
 KEYCLOAK_INTERNAL_URL = os.getenv("KEYCLOAK_INTERNAL_URL", "")
@@ -69,19 +70,12 @@ class KeycloakSecurityManager(AirflowSecurityManager):
 
             # Extract roles from realm_access (global roles)
             realm_roles = claims.get("realm_access", {}).get("roles", [])
-            print(f"\n\nExtracted roles from realm_roles: {realm_roles}\n\n")
 
             # Extract roles from resource_access (client-specific roles)
             client_roles = claims.get("resource_access", {}).get(KEYCLOAK_CLIENT_ID, {}).get("roles", [])
-            print(f"\n\nExtracted roles from client_roles: {client_roles}\n\n")
 
             # Combine both role lists, removing duplicates
             roles = list(set(realm_roles + client_roles))
-
-
-            print(f"claims:\n\n{claims}\n\n")
-
-            print(f"\n\nExtracted roles from Keycloak: {roles}\n\n")
 
             return {
                 "username": claims.get("preferred_username"),
@@ -92,5 +86,15 @@ class KeycloakSecurityManager(AirflowSecurityManager):
             }
         return None
     
+    def oauth_logout(self):
+        """
+        Override the logout method to properly log out from Keycloak.
+        """
+        keycloak_logout_url = (
+            f"{OAUTH_PROVIDERS[0]['remote_app']['api_base_url']}/logout"
+            f"?redirect_uri=http://localhost:8080"
+        )
+        return redirect(keycloak_logout_url)
+
 # Set the custom security manager for Airflow
 SECURITY_MANAGER_CLASS = KeycloakSecurityManager
