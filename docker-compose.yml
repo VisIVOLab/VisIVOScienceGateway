@@ -68,13 +68,13 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW_KEYCLOAK_CLIENT_ID: visivosg
-      AIRFLOW_KEYCLOAK_CLIENT_SECRET: OHTR5Hv5WxLlAhzaJujZcISJJwzY9nfE
+      AIRFLOW_KEYCLOAK_CLIENT_SECRET: XXXX
       KEYCLOAK_INTERNAL_URL : http://keycloak:8080  # Used by Airflow inside Docker
       KEYCLOAK_EXTERNAL_URL : http://localhost:8081  # Used by the user's browser
       KEYCLOAK_REALM: VisIVO
     volumes:
       - ./airflow/webserver_config.py:/opt/airflow/webserver_config.py  # Mount the config file
-      - ./dags:/opt/airflow/dags
+      - ./airflow/dags:/opt/airflow/dags
     command: webserver
     networks:
       - airflow-net
@@ -92,8 +92,27 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
     volumes:
-      - ./dags:/opt/airflow/dags
+      - ./airflow/dags:/opt/airflow/dags
     command: scheduler
+    networks:
+      - airflow-net
+
+  airflow-worker:
+    image: apache/airflow:2.7.0
+    container_name: airflow-worker
+    restart: always
+    depends_on:
+      airflow-scheduler:
+        condition: service_started
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+    command: celery worker
     networks:
       - airflow-net
 
@@ -147,7 +166,7 @@ services:
       - KEYCLOAK_URL=http://keycloak:8080
       - KEYCLOAK_REALM=VisIVO
       - KEYCLOAK_CLIENT_ID=visivosg
-      - KEYCLOAK_CLIENT_SECRET=YOUR_SECRET
+      - KEYCLOAK_CLIENT_SECRET=OHTR5Hv5WxLlAhzaJujZcISJJwzY9nfE
     networks:
       - airflow-net
 
