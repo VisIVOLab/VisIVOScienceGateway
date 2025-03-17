@@ -1,32 +1,40 @@
 from fastapi import Depends, HTTPException, Security
-from fastapi.security import OAuth2AuthorizationCodeBearer
-from keycloak import KeycloakOpenID
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import requests
+import jwt  # PyJWT for decoding Keycloak tokens
 import os
 
-# Recupera le configurazioni da Docker Compose (ambiente)
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "")
-REALM_NAME = os.getenv("KEYCLOAK_REALM", "")
-CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "")
-CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "")  # Preso dal docker-compose.yml
+# Environment variables for Keycloak configuration
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")
+REALM_NAME = os.getenv("KEYCLOAK_REALM")
+KEYCLOAK_PUBLIC_KEY_URL = f"{KEYCLOAK_URL}/realms/{REALM_NAME}/protocol/openid-connect/certs"
 
-keycloak_openid = KeycloakOpenID(server_url=KEYCLOAK_URL,
-                                 client_id=CLIENT_ID,
-                                 realm_name=REALM_NAME,
-                                 client_secret_key=CLIENT_SECRET)
+# Token security
+security = HTTPBearer()
 
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl=f"{KEYCLOAK_URL}/realms/{REALM_NAME}/protocol/openid-connect/auth",
-    tokenUrl=f"{KEYCLOAK_URL}/realms/{REALM_NAME}/protocol/openid-connect/token"
-)
-
-async def get_current_user(token: str = Security(oauth2_scheme)):
+def get_public_key():
     """
-    Funzione per validare il token di autenticazione con Keycloak.
+    Fetch the Keycloak public key from the JWKS endpoint.
+    This key is used to verify the JWT token.
     """
     try:
-        user_info = keycloak_openid.introspect(token)
-        if not user_info.get("active"):
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return user_info
-    except Exception:
+        jwks = requests.get(KEYCLOAK_PUBLIC_KEY_URL).json()
+        return jwt.PyJWKSet.from_dict(jwks)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Keycloak public key: {str(e)}")
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """
+    Extracts and verifies user information from the Keycloak JWT token.
+    """
+    token = credentials.credentials
+    try:
+        jwks = get_public_key()
+        public_key = jwks.keys[0].key  # Get first key from JWKS set
+        decoded_token = jwt.decode(token, public_key, algorithms=["RS256"], audience="account")
+        return decoded_token  # Contains 'sub' (user_id) and roles
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")

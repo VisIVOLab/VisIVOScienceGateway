@@ -5,3 +5,5 @@ python-keycloak
 fastapi-users
 pytest
 httpx
+sqlalchemy
+psycopg2

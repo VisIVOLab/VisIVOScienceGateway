@@ -47,8 +47,8 @@ async def secure_data(user: dict = Depends(get_current_user)):
     return {"message": "Secure Data Accessed", "user": user}
 @router.get("/me", tags=["auth"])
 
-async def get_me(user: dict = Depends(get_current_user)):
+async def get_me(current_user: dict = Depends(get_current_user)):
     """
     Returns the authenticated user's information.
     """
-    return {"username": user.get("preferred_username"), "email": user.get("email")}
+    return {"user_id": current_user.get("sub"), "username": current_user.get("preferred_username")}
