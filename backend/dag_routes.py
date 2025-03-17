@@ -11,6 +11,21 @@ router = APIRouter()
 
 DAGS_FOLDER = "/opt/airflow/dags"  # Ensure this path is correct for Airflow DAG storage
 
+@router.get("/list")
+async def list_user_dags(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Retrieves all DAGs uploaded by the authenticated user.
+    """
+    user_id = current_user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    
+    dags = db.query(UserDag).filter(UserDag.user_id == user_id).all()
+    if not dags:
+        return {"message": "No DAGs found for the user"}
+    
+    return {"dags": [{"dag_id": dag.dag_id, "created_at": dag.created_at} for dag in dags]}
+
 @router.post("/upload/")
 async def upload_dag(file: UploadFile = File(...), db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     """
