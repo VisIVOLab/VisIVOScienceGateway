@@ -24,6 +24,7 @@ services:
     ports:
       - "8081:8081"  # Keycloak sarà accessibile su http://localhost:8081
       - "8080:8080"  # Airflow sarà accessibile su http://localhost:8080
+      - "8000:8000"  # Airflow sarà accessibile su http://localhost:8080
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -45,6 +46,9 @@ services:
       - |
         airflow db migrate
         airflow connections create-default-connections
+        python /opt/airflow/scripts/init_db.py  # Run custom DB initialization script
+    volumes:
+      - ./airflow/scripts:/opt/airflow/scripts
     networks:
       - airflow-net
 
@@ -68,7 +72,7 @@ services:
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
       AIRFLOW_KEYCLOAK_CLIENT_ID: visivosg
-      AIRFLOW_KEYCLOAK_CLIENT_SECRET: XXXX
+      AIRFLOW_KEYCLOAK_CLIENT_SECRET: xxx 
       KEYCLOAK_INTERNAL_URL : http://keycloak:8080  # Used by Airflow inside Docker
       KEYCLOAK_EXTERNAL_URL : http://localhost:8081  # Used by the user's browser
       KEYCLOAK_REALM: VisIVO
@@ -157,16 +161,17 @@ services:
     depends_on:
       - airflow-webserver
       - keycloak
-    ports:
-      - "8000:8000"
     volumes:
       - ./backend:/app
+      - ./airflow/dags:/opt/airflow/dags  # Allow backend to upload DAGs
     environment:
       - ENV=production
       - KEYCLOAK_URL=http://keycloak:8080
       - KEYCLOAK_REALM=VisIVO
       - KEYCLOAK_CLIENT_ID=visivosg
-      - KEYCLOAK_CLIENT_SECRET=OHTR5Hv5WxLlAhzaJujZcISJJwzY9nfE
+      - KEYCLOAK_CLIENT_SECRET=xxx
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+
     networks:
       - airflow-net
 
