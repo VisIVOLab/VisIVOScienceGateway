@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
-import { Container, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 
 const DashboardLayout = ({ children }) => {
-    const [user, setUser] = useState<{ username: string } | null>(null);
+    const [user, setUser] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -31,28 +31,28 @@ const DashboardLayout = ({ children }) => {
                 navigate("/");
             });
     }, [navigate]);
-    
-    if (!user) {
-        return (
-            <Container>
-                <CircularProgress />
-            </Container>
-        );
-    }
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
 
     return (
-        <div className="flex h-screen">
-            {/* Sidebar */}
-            <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+            {/* Navbar */}
+            <Navbar username={user?.username} toggleSidebar={toggleSidebar} />
 
-            <div className="flex flex-col flex-1">
-                {/* Navbar */}
-                <Navbar username={user.username} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+            <Box sx={{ display: "flex", flexGrow: 1 }}>
+                {/* Sidebar */}
+                <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
 
                 {/* Main Content */}
-                <main className="p-4">{children}</main>
-            </div>
-        </div>
+                <Box
+                    component="main"
+                    sx={{ flexGrow: 1, p: 3, mt: "64px", transition: "margin 0.3s" }}
+                >
+                    {children}
+                </Box>
+            </Box>
+        </Box>
     );
 };
 

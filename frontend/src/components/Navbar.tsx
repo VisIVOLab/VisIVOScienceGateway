@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Avatar } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ username, toggleSidebar }: { username: string | null ; toggleSidebar: () => void }, ) => {
@@ -21,11 +22,13 @@ const Navbar = ({ username, toggleSidebar }: { username: string | null ; toggleS
     };
 
     return (
-        <AppBar position="static">
+        <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
             <Toolbar>
-            <IconButton onClick={toggleSidebar} color="inherit">
-                    ☰
+                {/* Bottone per aprire/chiudere sidebar */}
+                <IconButton onClick={toggleSidebar} color="inherit" edge="start" sx={{ mr: 2 }}>
+                    <MenuIcon />
                 </IconButton>
+
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                     Dashboard
                 </Typography>
@@ -36,14 +39,8 @@ const Navbar = ({ username, toggleSidebar }: { username: string | null ; toggleS
                     </Avatar>
                 </IconButton>
 
-                <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleMenuClose}
-                >
-                    <MenuItem onClick={handleMenuClose}>
-                        Welcome, {username || "User"}
-                    </MenuItem>
+                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                    <MenuItem onClick={handleMenuClose}>Welcome, {username || "User"}</MenuItem>
                     <MenuItem onClick={handleLogout}>Logout</MenuItem>
                 </Menu>
             </Toolbar>

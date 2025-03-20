@@ -1,17 +1,40 @@
 import React from "react";
+import { Drawer, List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
+import HomeIcon from "@mui/icons-material/Home";
+import SettingsIcon from "@mui/icons-material/Settings";
 
-const Sidebar = ({ isOpen, toggleSidebar }) => {
+const SIDEBAR_WIDTH = 240;
+
+const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
     return (
-        <div className={`fixed inset-y-0 left-0 bg-gray-800 text-white w-64 p-5 transition-transform transform ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
-            <button onClick={toggleSidebar} className="text-white mb-4 focus:outline-none">
-                ✖
-            </button>
-            <ul>
-                <li className="p-2 hover:bg-gray-700 rounded">Home</li>
-                <li className="p-2 hover:bg-gray-700 rounded">Settings</li>
-                <li className="p-2 hover:bg-gray-700 rounded">Logout</li>
-            </ul>
-        </div>
+        <Drawer
+            variant="permanent"
+            sx={{
+                width: isOpen ? SIDEBAR_WIDTH : 0,
+                flexShrink: 0,
+                "& .MuiDrawer-paper": {
+                    width: isOpen ? SIDEBAR_WIDTH : 0,
+                    transition: "width 0.3s ease-in-out",
+                    overflowX: "hidden",
+                    marginTop: "64px",
+                },
+            }}
+        >
+            <List>
+                <ListItem button>
+                    <ListItemIcon>
+                        <HomeIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Home" />
+                </ListItem>
+                <ListItem button>
+                    <ListItemIcon>
+                        <SettingsIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Settings" />
+                </ListItem>
+            </List>
+        </Drawer>
     );
 };
 
