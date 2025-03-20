@@ -1,7 +1,8 @@
 import React from "react";
 import { Drawer, List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
-import SettingsIcon from "@mui/icons-material/Settings";
+import FolderIcon from "@mui/icons-material/Folder";
+import { Link } from "react-router-dom";
 
 const SIDEBAR_WIDTH = 240;
 
@@ -21,17 +22,17 @@ const Sidebar = ({ isOpen }: { isOpen: boolean }) => {
             }}
         >
             <List>
-                <ListItem button>
+                <ListItem button component={Link} to="/dashboard">
                     <ListItemIcon>
                         <HomeIcon />
                     </ListItemIcon>
                     <ListItemText primary="Home" />
                 </ListItem>
-                <ListItem button>
+                <ListItem button component={Link} to="/dags">
                     <ListItemIcon>
-                        <SettingsIcon />
+                        <FolderIcon />
                     </ListItemIcon>
-                    <ListItemText primary="Settings" />
+                    <ListItemText primary="My DAGs" />
                 </ListItem>
             </List>
         </Drawer>
