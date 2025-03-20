@@ -6,6 +6,7 @@ from models import UserDag
 import os
 import shutil
 import uuid
+import re
 
 router = APIRouter()
 
@@ -55,6 +56,15 @@ async def list_user_dags(current_user: dict = Depends(get_current_user), db: Ses
     
     return {"dags": [{"dag_id": dag.dag_id, "created_at": dag.created_at} for dag in dags]}
 
+def modify_dag_content(file_content: str, new_dag_id: str, user_id: str) -> str:
+    """
+    Modifica il contenuto del file Python per assegnare un dag_id e owner univoco.
+    """
+    print (f"inside {user_id}")
+    file_content = re.sub(r'dag_id\s*=\s*[\'\"](.+?)[\'\"]', f'dag_id="{new_dag_id}"', file_content, count=1)    
+    file_content = re.sub(r'"owner"\s*:\s*"(.+?)"', f'"owner": "{user_id}"', file_content, count=1)
+
+    return file_content
 @router.post("/upload/")
 async def upload_dag(file: UploadFile = File(...), db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     """
@@ -66,9 +76,12 @@ async def upload_dag(file: UploadFile = File(...), db: Session = Depends(get_db)
         new_filename = f"{original_filename.rsplit('.', 1)[0]}_{unique_suffix}.py"
         file_path = os.path.join(DAGS_FOLDER, new_filename)
 
-        # Save the file in the DAGs folder
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+        file_content = file.file.read().decode("utf-8")
+    
+        updated_content = modify_dag_content(file_content, new_filename, user.get("preferred_username"))
+    
+        with open(file_path, "w", encoding="utf-8") as buffer:
+            buffer.write(updated_content)
 
         # Register DAG in the database
         dag_entry = UserDag(user_id=user["sub"], dag_id=new_filename)
