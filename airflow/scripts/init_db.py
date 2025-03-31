@@ -1,12 +1,13 @@
 import os
 import psycopg2
 
-# Database connection details
-DB_NAME = "airflow"
-DB_USER = "airflow"
-DB_PASSWORD = "airflow"
-DB_HOST = "airflow-db"
-DB_PORT = "5432"
+# Get DB credentials from environment variables
+DB_NAME = os.getenv("POSTGRES_DB")
+DB_USER = os.getenv("POSTGRES_USER")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+DB_HOST = os.getenv("POSTGRES_DB_HOST")
+DB_PORT = os.getenv("POSTGRES_DB_PORT", "5432")  # Default to 5432 if not provided
+
 
 # Connect to PostgreSQL
 try:
