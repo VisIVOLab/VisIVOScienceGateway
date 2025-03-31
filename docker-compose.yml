@@ -4,9 +4,9 @@ services:
     container_name: airflow-db
     restart: always
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,9 +22,9 @@ services:
     container_name: nginx-proxy
     restart: always
     ports:
-      - "8081:8081"  # Keycloak sarà accessibile su http://localhost:8081
-      - "8080:8080"  # Airflow sarà accessibile su http://localhost:8080
-      - "8000:8000"  # Airflow sarà accessibile su http://localhost:8080
+      - "8081:8081"  # Keycloak
+      - "8080:8080"  # Airflow
+      - "8000:8000"  # backend
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -68,17 +68,19 @@ services:
         condition: service_completed_successfully
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-      AIRFLOW_KEYCLOAK_CLIENT_ID: visivosg
-      AIRFLOW_KEYCLOAK_CLIENT_SECRET: xxx 
+      AIRFLOW_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      AIRFLOW_KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      AIRFLOW__API__AUTH_BACKENDS: keycloak_auth
       KEYCLOAK_INTERNAL_URL : http://keycloak:8080  # Used by Airflow inside Docker
       KEYCLOAK_EXTERNAL_URL : http://localhost:8081  # Used by the user's browser
-      KEYCLOAK_REALM: VisIVO
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
     volumes:
       - ./airflow/webserver_config.py:/opt/airflow/webserver_config.py  # Mount the config file
       - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/plugins:/opt/airflow/plugins
     command: webserver
     networks:
       - airflow-net
@@ -91,7 +93,7 @@ services:
       airflow-webserver:
         condition: service_started
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
@@ -109,7 +111,7 @@ services:
       airflow-scheduler:
         condition: service_started
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
@@ -125,9 +127,9 @@ services:
     container_name: keycloak-db
     restart: always
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak_password
+      POSTGRES_DB: ${KEYCLOAK_DB}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     volumes:
       - keycloak_data:/var/lib/postgresql/data
     networks:
@@ -140,13 +142,13 @@ services:
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: keycloak_password
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_HOSTNAME_URL: "http://localhost:8081"
       KC_HOSTNAME_ADMIN_URL: "http://localhost:8081"
       KC_PROXY: "edge"
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     command: ["start-dev"]
     depends_on:
         keycloak-db:
@@ -167,9 +169,9 @@ services:
     environment:
       - ENV=production
       - KEYCLOAK_URL=http://keycloak:8080
-      - KEYCLOAK_REALM=VisIVO
-      - KEYCLOAK_CLIENT_ID=visivosg
-      - KEYCLOAK_CLIENT_SECRET=xxx
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
 
     networks:
@@ -182,15 +184,17 @@ services:
     depends_on:
       backend:
         condition: service_started
-    ports:
-      - "5173:5173"
     volumes:
       - ./frontend:/app
+    ports:
+      - "5173:5173"
     environment:
       - REACT_APP_BACKEND_URL=http://backend:8000
       - REACT_APP_KEYCLOAK_URL=http://localhost:8081
-      - REACT_APP_KEYCLOAK_REALM=Visivo
-      - REACT_APP_KEYCLOAK_CLIENT_ID=visivo-client
+      - REACT_APP_KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - REACT_APP_KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - VITE_SERVER_HOST=0.0.0.0
+      - VITE_SERVER_PORT=${VITE_SERVER_PORT}
     networks:
       - airflow-net
 
