@@ -7,10 +7,43 @@ import os
 import shutil
 import uuid
 import re
+from sqlalchemy.sql import text
+import requests
 
 router = APIRouter()
 
 DAGS_FOLDER = "/opt/airflow/dags"  # Ensure this path is correct for Airflow DAG storage
+
+AIRFLOW_API_URL = "http://airflow-webserver:8080/api/v1/dags"
+
+@router.post("/start/{dag_id}")
+def start_dag(dag_id: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """
+    Start a DAG execution if the user has access to it.
+    """
+
+    # Check if the DAG belongs to the current user
+    user_id = current_user["sub"]  # Extract the user ID from the Keycloak token
+    dag_entry = db.execute(
+        text("SELECT * FROM user_dags WHERE user_id = :user_id AND dag_id = :dag_id"),
+        {"user_id": user_id, "dag_id": dag_id}
+    ).fetchone()
+
+    if not dag_entry:
+        raise HTTPException(status_code=403, detail="You are not allowed to start this DAG")
+
+    # Make request to Airflow API to trigger the DAG
+    airflow_url = f"{AIRFLOW_API_URL}/{dag_id}/dagRuns"
+    response = requests.post(
+        airflow_url,
+        json={},
+        auth=("airflow", "airflow")  # Use Airflow's basic authentication
+    )
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail=f"Failed to start DAG: {response.text}")
+
+    return {"message": f"DAG {dag_id} started successfully"}
 
 @router.delete("/delete/{dag_id}")
 async def delete_dag(dag_id: str, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
