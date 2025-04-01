@@ -6,3 +6,4 @@ frontend/package-lock.json
 /airflow/logs
 /airflow/dags/__pycache__
 /airflow/dags
+/airflow/plugins/__pycache__
