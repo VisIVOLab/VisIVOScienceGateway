@@ -1,0 +1,30 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// Il tuo dominio esterno
+const VITE_HMR_HOST = 'localhost'; 
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    // 1. HTTP: Permette l'accesso da Docker e Nginx
+    host: true, 
+    port: 5173,
+    
+    // 2. CONFIGURAZIONE HMR 
+    hmr: {
+      // Diciamo a Vite di usare il dominio esterno per il WebSocket
+      // Invece di usare 'localhost', usa il nome host che il browser ha visto
+      host: VITE_HMR_HOST, 
+      
+      host:'localhost, 
+      // il protocollo WebSocket deve essere 'wss' (WebSocket Secure), 
+      // anche se Nginx  parla al container in HTTP.
+      protocol: 'ws',
+      
+    }
+  },
+  build: {
+    outDir: 'dist',
+  },
+});
