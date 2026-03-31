@@ -1,0 +1,207 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "443:443" 
+      - "80:80" 
+      - "8081:8081"  # Keycloak
+      - "8080:8080"  # 
+      - "8000:8000"  # backend
+    volumes:
+      - ./nginx/nginx.conf.example:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - keycloak
+      # - streamflow-webserver
+    networks:
+      - streamflow-net
+
+
+  keycloak-db:
+    image: postgres:13
+    container_name: keycloak-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak_data:/var/lib/postgresql/data
+    networks:
+      - streamflow-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0
+    container_name: keycloak
+    restart: always
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_URL: ${KEYCLOACK_URL}
+    command:
+      - start-dev
+      - --http-relative-path=/keycloak
+      - --hostname-url=${KEYCLOACK_URL}
+      - --hostname-strict=false
+      - --proxy=edge
+      - --hostname-strict-https=false
+      - --proxy=edge
+      - --http-enabled=true
+      - --http-port=8080
+    depends_on:
+     keycloak-db:
+       condition: service_started
+    networks:
+     - streamflow-net
+
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    depends_on:
+      - keycloak
+      - database              
+         
+    volumes:
+      - ./backend:/app
+      - ./backend/workflows/projects/pyAETNA.cwl:/app/workflows/projects/pyAETNA.cwl:ro
+      
+    environment:
+      - ENV=production
+      - KEYCLOAK_URL=${KEYCLOACK_URL} 
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - DB_PORT=5432                  # Porta interna standard
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_TYPE=${DB_TYPE}
+      - DB_HOST=${DB_HOST}
+    networks:
+      - streamflow-net
+
+  #
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - ./frontend:/app
+    
+    environment:
+      - REACT_APP_BACKEND_URL=http://backend:8000
+      - REACT_APP_KEYCLOAK_URL=http://localhost:8081
+      - REACT_APP_KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - REACT_APP_KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - VITE_SERVER_HOST=0.0.0.0
+      - VITE_SERVER_PORT=${VITE_SERVER_PORT}
+    networks:
+      - streamflow-net
+
+  database:
+    image: postgres:13 # Stessa immagine, nuovo container!
+    container_name: database
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DB_TYPE : ${DB_TYPE}
+      DB_HOST : ${DB_HOST}
+    volumes:
+      - app_data:/var/lib/postgresql/data 
+    networks:
+      - streamflow-net
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - streamflow-net
+
+  worker:
+    build: ./backend          # usa lo stesso Dockerfile del backend
+    container_name: worker
+    restart: always
+    depends_on:
+      - redis
+      - backend
+    command: celery -A tasks.app worker --loglevel=INFO --concurrency=1
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENV=production
+      - REDIS_URL=redis://redis:6379/0
+      - JOBS_DIR=/jobs
+      - KEYCLOAK_URL=${KEYCLOACK_URL}
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_TYPE=${DB_TYPE}
+      - DB_HOST=${DB_HOST}
+    networks:
+      - streamflow-net
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.9.0
+    container_name: logstash
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    volumes:
+       - ./logstash/pipeline:/usr/share/logstash/pipeline
+      # logstash.yml e pipelines.yml
+       - ./logstash/config:/usr/share/logstash/config
+    
+    networks:
+      - streamflow-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - streamflow-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.9.0
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      SERVER_BASEPATH: "/kibana"
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch 
+    networks:
+      - streamflow-net
+
+volumes:
+  app_data:
+  postgres_data:
+  keycloak_data:
+  es_data:
+networks:
+  streamflow-net:
+    driver: bridge
