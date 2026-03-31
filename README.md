@@ -50,7 +50,8 @@ To allow the container to log in, you must add the public key to your cluster ac
 1. Rename the configuration files:
 ```sh
 mv .env.example .env
-mv nginx/nginx.conf.example nginx/nginx.conf
+mv frontend/vite.config.js.example frontend/vite.config.js
+mv docker-compose.yaml.example docker-compose.yaml
 ```
 
 2. Modify the .env file:
@@ -118,45 +119,21 @@ If the script finishes without errors, your database is ready. You can now exit 
 
 
 ### Accessing the Services
-- **Airflow Web UI**: [http://localhost:8080](http://localhost:8080)
-- **Backend API**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Frontend UI**: [http://localhost:5173](http://localhost:5173)
-- **Keycloak Admin UI**: [http://localhost:8081](http://localhost:8081) (default admin: `admin/admin`)
+
+- type `localhost` on your browser to access frontend
+- type `localhost/keycloak` to access keycloak admin UI
+- type `localhost/kibana` to access kibana
+
+
 
 ## Authentication with Keycloak
-1. Open the Keycloak Admin UI and log in with `admin/admin`.
+1. Open the Keycloak Admin UI and log in with `<your_user>/<your_pasw>`.
 2. Create a new realm for the application.
 3. Configure client credentials for the frontend and backend.
 4. Users will authenticate via Keycloak when logging into the frontend.
 5. The backend will validate authentication tokens via Keycloak.
 
-## Development
-### Frontend
-Navigate to the frontend directory and start the development server:
-```sh
-cd frontend
-npm install
-npm run dev
-```
 
-### Backend
-Navigate to the backend directory and start the FastAPI server:
-```sh
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-## Configuration
-Modify environment variables in the `.env` files for each service to customize settings, including Keycloak credentials.
-
-## Contributing
-We welcome contributions! Please follow these steps:
-1. Fork the repository.
-2. Create a new branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -m "Added new feature"`
-4. Push to branch: `git push origin feature-name`
-5. Create a Pull Request.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
