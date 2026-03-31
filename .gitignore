@@ -30,3 +30,4 @@ backend/workflows/uploads/*
 !backend/workflows/outputs/.gitkeep
 !backend/workflows/uploads/.gitkeep
 dataDUMP
+backend/workflows/TEST_*/
