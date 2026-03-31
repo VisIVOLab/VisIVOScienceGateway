@@ -1,0 +1,2 @@
+node.name: logstash_sg
+api.environment: dev
