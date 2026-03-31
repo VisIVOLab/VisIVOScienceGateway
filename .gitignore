@@ -1,0 +1,15 @@
+.DS_Store
+/backend/__pycache__
+/frontend/node_modules
+frontend/package-lock.json
+/backend/tests/__pycache__
+/airflow/logs
+/airflow/dags/__pycache__
+/airflow/dags
+/airflow/plugins/__pycache__
+
+.env
+nginx/nginx.conf
+nginx/.htpasswd
+backend/id_rsa_container
+frontend/vite.config.js
