@@ -129,9 +129,24 @@ If the script finishes without errors, your database is ready. You can now exit 
 ## Authentication with Keycloak
 1. Open the Keycloak Admin UI and log in with `<your_user>/<your_pasw>`.
 2. Create a new realm for the application.
-3. Configure client credentials for the frontend and backend.
+3. Configure client credentials for the frontend and backend in `.env` file.
 4. Users will authenticate via Keycloak when logging into the frontend.
 5. The backend will validate authentication tokens via Keycloak.
+
+# Use case
+
+0. Log in
+1. Use the sidebar to navigate to "Project" section
+2. Create new project and choose classic (Note: pyAETNA configuration will not work on your setup)
+3. Go into the project
+4. Add a `.cwl` file (or many)
+5. Click **new run** button, the website provides you a list of input file that your cwl needs. 
+6. Upload your input data
+7. Upload a yaml configuration file with filename and variables association *(Note: for this file check the `yaml configuration` radio button)*
+8. Click **next**, then type the slurm parameters you want. 
+9. Wait until your execution ends, you can watch realtime information *(May not work properly on safari browser)*
+10. Download your results!
+
 
 
 
